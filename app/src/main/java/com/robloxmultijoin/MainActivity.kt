@@ -85,10 +85,6 @@ class MainActivity : Activity() {
         content.addView(linkInput, matchWrap())
         content.addView(space(8))
 
-        content.addView(Button(this).apply {
-            text = "Spiel direkt in Roblox öffnen"
-            setOnClickListener { openExperience() }
-        })
         content.addView(space(12))
 
         status = label("Status: Noch kein Spiel-Link geöffnet. Diese App speichert keine Roblox-Passwörter.", 14, Color.rgb(190, 200, 215))
