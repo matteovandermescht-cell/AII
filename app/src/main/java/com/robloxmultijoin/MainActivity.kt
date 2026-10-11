@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.content.Intent
 import android.net.Uri
 import android.graphics.Color
-import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.*
 
@@ -33,7 +32,7 @@ class MainActivity : Activity() {
         scroll.addView(content)
 
         content.addView(label("Roblox Multi-Join", 26, Color.WHITE))
-        content.addView(label("Bis zu 4 Account-Profile · ohne Passwörter", 14, Color.LTGRAY))
+        content.addView(label("Bis zu 4 Account-Profile · keine Passwörter gespeichert", 14, Color.LTGRAY))
         content.addView(space(18))
         content.addView(label("Account-Namen (optional)", 17, Color.WHITE))
 
@@ -52,7 +51,7 @@ class MainActivity : Activity() {
             content.addView(space(8))
         }
 
-        val save = Button(this).apply {
+        content.addView(Button(this).apply {
             text = "Account-Namen lokal speichern"
             setOnClickListener {
                 val editor = prefs.edit()
@@ -60,10 +59,9 @@ class MainActivity : Activity() {
                     editor.putString("account_${index + 1}", edit.text.toString().trim())
                 }
                 editor.apply()
-                status.text = "Gespeichert. Es wurden keine Passwörter gespeichert."
+                status.text = "Gespeichert: nur Account-Namen, keine Passwörter."
             }
-        }
-        content.addView(save)
+        })
         content.addView(space(18))
         content.addView(label("Roblox-Spiel-Link", 17, Color.WHITE))
 
@@ -80,15 +78,15 @@ class MainActivity : Activity() {
         content.addView(space(8))
 
         content.addView(Button(this).apply {
-            text = "Spiel in Roblox öffnen"
+            text = "Spiel direkt in Roblox öffnen"
             setOnClickListener { openExperience() }
         })
         content.addView(space(12))
 
-        status = label("Status: Noch kein Spiel-Link geöffnet. Live-Spielstatus ist nicht automatisch verfügbar.", 14, Color.rgb(190, 200, 215))
+        status = label("Status: Noch kein Spiel-Link geöffnet. Diese App speichert keine Roblox-Passwörter.", 14, Color.rgb(190, 200, 215))
         content.addView(status)
         content.addView(space(16))
-        content.addView(label("Hinweis: Ein Handy kann nicht garantiert zwei getrennte Roblox-Sitzungen gleichzeitig ausführen. Dieser Prototyp öffnet den Spiel-Link und meldet keinen ungeprüften Live-Status.", 13, Color.LTGRAY))
+        content.addView(label("Sicherheit: Gib dein Roblox-Passwort nur in der offiziellen Roblox-App oder auf roblox.com ein – niemals in dieser App. Mehrere getrennte Roblox-Sitzungen auf einem Handy werden nicht garantiert.", 13, Color.LTGRAY))
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         setContentView(root)
     }
@@ -108,13 +106,26 @@ class MainActivity : Activity() {
             status.text = "Ungültiger Link. Nutze einen HTTPS-Link zu roblox.com/games/..."
             return
         }
+
+        val placeId = Regex("/games/(\\d+)").find(uri.path.orEmpty())?.groupValues?.getOrNull(1)
         prefs.edit().putString("game_link", raw).apply()
-        val intent = Intent(Intent.ACTION_VIEW, uri)
+
         try {
-            startActivity(intent)
-            status.text = "Spiel-Link an Android übergeben. Ob der Account im Spiel ist, kann diese App nicht sicher bestätigen."
+            if (placeId != null) {
+                val appUri = Uri.parse("roblox://experiences/start?placeId=$placeId")
+                startActivity(Intent(Intent.ACTION_VIEW, appUri))
+                status.text = "Roblox-App wurde angefordert. Bitte prüfe, ob das Spiel geöffnet wird. Kein Passwort wird gespeichert."
+            } else {
+                startActivity(Intent(Intent.ACTION_VIEW, uri))
+                status.text = "Link geöffnet. Falls der Browser erscheint, tippe dort auf Spielen. Kein Passwort wird gespeichert."
+            }
         } catch (_: Exception) {
-            status.text = "Roblox konnte nicht geöffnet werden. Prüfe, ob Roblox installiert ist."
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, uri))
+                status.text = "Roblox-App konnte nicht direkt geöffnet werden; Link im Browser geöffnet. Kein Passwort wird gespeichert."
+            } catch (_: Exception) {
+                status.text = "Roblox konnte nicht geöffnet werden. Prüfe, ob Roblox installiert ist."
+            }
         }
     }
 
