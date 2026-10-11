@@ -13,6 +13,7 @@ class MainActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var linkInput: EditText
     private val accountInputs = mutableListOf<EditText>()
+    private val accountStatuses = mutableListOf<TextView>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,6 +49,13 @@ class MainActivity : Activity() {
             }
             accountInputs.add(input)
             content.addView(input, matchWrap())
+            val accountStatus = label("Status: Noch nicht gestartet", 13, Color.LTGRAY)
+            accountStatuses.add(accountStatus)
+            content.addView(accountStatus)
+            content.addView(Button(this).apply {
+                text = "Spiel mit Account $i öffnen"
+                setOnClickListener { openExperience(i) }
+            })
             content.addView(space(8))
         }
 
@@ -91,10 +99,11 @@ class MainActivity : Activity() {
         setContentView(root)
     }
 
-    private fun openExperience() {
+    private fun openExperience(accountNumber: Int) {
         val raw = linkInput.text.toString().trim()
         if (raw.isBlank()) {
             status.text = "Bitte zuerst einen Roblox-Spiel-Link eingeben."
+            accountStatuses[accountNumber - 1].text = "Status: Kein Link eingetragen"
             return
         }
         val uri = runCatching { Uri.parse(raw) }.getOrNull()
@@ -104,6 +113,7 @@ class MainActivity : Activity() {
             uri.path?.startsWith("/games/") == true
         if (!valid) {
             status.text = "Ungültiger Link. Nutze einen HTTPS-Link zu roblox.com/games/..."
+            accountStatuses[accountNumber - 1].text = "Status: Ungültiger Link"
             return
         }
 
@@ -114,17 +124,21 @@ class MainActivity : Activity() {
             if (placeId != null) {
                 val appUri = Uri.parse("roblox://experiences/start?placeId=$placeId")
                 startActivity(Intent(Intent.ACTION_VIEW, appUri))
-                status.text = "Roblox-App wurde angefordert. Bitte prüfe, ob das Spiel geöffnet wird. Kein Passwort wird gespeichert."
+                status.text = "Startversuch für Account $accountNumber ausgelöst. Im Spiel nicht bestätigt."
+                accountStatuses[accountNumber - 1].text = "Status: Öffnungsversuch ausgelöst (nicht bestätigt)"
             } else {
                 startActivity(Intent(Intent.ACTION_VIEW, uri))
-                status.text = "Link geöffnet. Falls der Browser erscheint, tippe dort auf Spielen. Kein Passwort wird gespeichert."
+                status.text = "Link für Account $accountNumber geöffnet. Der Beitritt ist nicht bestätigt."
+                accountStatuses[accountNumber - 1].text = "Status: Link geöffnet (nicht bestätigt)"
             }
         } catch (_: Exception) {
             try {
                 startActivity(Intent(Intent.ACTION_VIEW, uri))
-                status.text = "Roblox-App konnte nicht direkt geöffnet werden; Link im Browser geöffnet. Kein Passwort wird gespeichert."
+                status.text = "Direktstart fehlgeschlagen; Browser-Link für Account $accountNumber geöffnet."
+                accountStatuses[accountNumber - 1].text = "Status: Browser-Fallback (nicht bestätigt)"
             } catch (_: Exception) {
                 status.text = "Roblox konnte nicht geöffnet werden. Prüfe, ob Roblox installiert ist."
+                accountStatuses[accountNumber - 1].text = "Status: Öffnen fehlgeschlagen"
             }
         }
     }
